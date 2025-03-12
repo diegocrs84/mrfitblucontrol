@@ -1,4 +1,5 @@
 import React from 'react';
+import { Outlet, Link as RouterLink } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -16,53 +17,49 @@ import {
 import {
   Menu as MenuIcon,
   People as PeopleIcon,
+  Inventory as InventoryIcon,
   ExitToApp as ExitToAppIcon,
-  Lock as LockIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+const drawerWidth = 240;
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
-  };
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    setMobileOpen(false);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   const drawer = (
     <div>
       <Toolbar />
       <List>
+        <ListItem
+          button
+          component={RouterLink}
+          to="/products"
+          onClick={() => setMobileOpen(false)}
+        >
+          <ListItemIcon>
+            <InventoryIcon />
+          </ListItemIcon>
+          <ListItemText primary="Produtos" />
+        </ListItem>
         {user?.role === 'admin' && (
-          <ListItem button onClick={() => handleNavigation('/users')}>
+          <ListItem
+            button
+            component={RouterLink}
+            to="/users"
+            onClick={() => setMobileOpen(false)}
+          >
             <ListItemIcon>
               <PeopleIcon />
             </ListItemIcon>
-            <ListItemText primary="Gerenciar Usuários" />
+            <ListItemText primary="Usuários" />
           </ListItem>
         )}
-        <ListItem button onClick={() => handleNavigation('/change-password')}>
-          <ListItemIcon>
-            <LockIcon />
-          </ListItemIcon>
-          <ListItemText primary="Alterar Senha" />
-        </ListItem>
       </List>
     </div>
   );
@@ -72,7 +69,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <CssBaseline />
       <AppBar
         position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        sx={{
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+        }}
       >
         <Toolbar>
           <IconButton
@@ -87,23 +87,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Mr Fit Blu Control
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="body1" sx={{ mr: 2 }}>
-              {user?.username}
-            </Typography>
-            <Button
-              color="inherit"
-              onClick={handleLogout}
-              startIcon={<ExitToAppIcon />}
-            >
-              Sair
-            </Button>
-          </Box>
+          <Button color="inherit" onClick={logout} startIcon={<ExitToAppIcon />}>
+            Sair
+          </Button>
         </Toolbar>
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: 240 }, flexShrink: { sm: 0 } }}
+        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
         <Drawer
           variant="temporary"
@@ -114,7 +105,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+            },
           }}
         >
           {drawer}
@@ -123,7 +117,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+            },
           }}
           open
         >
@@ -135,11 +132,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - 240px)` },
-          mt: 8,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
-        {children}
+        <Toolbar />
+        <Outlet />
       </Box>
     </Box>
   );

@@ -33,4 +33,30 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+}
+
+export interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  category: 'Frango' | 'Carne' | 'Peixe' | 'Vegetariano';
+  costPrice: number;
+  sellingPrice: number;
+  ifoodPrice: number;
+  quantity: number;
+  weight: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProductDTO {
+  name: string;
+  description: string;
+  category: 'Frango' | 'Carne' | 'Peixe' | 'Vegetariano';
+  costPrice: number;
+  sellingPrice: number;
+  ifoodPrice: number;
+  quantity: number;
+  weight: string;
 } 

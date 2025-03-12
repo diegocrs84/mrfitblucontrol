@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { config } from '../config/env';
-import { LoginResponse, User, UserLog } from '../types';
+import { LoginResponse, User, UserLog, Product, CreateProductDTO } from '../types';
 
 export const api = axios.create({
   baseURL: config.apiUrl,
@@ -51,6 +51,32 @@ export const userService = {
     const response = await api.get<UserLog[]>('/users/logs');
     return response.data;
   },
+};
+
+export const productService = {
+  createProduct: async (data: CreateProductDTO): Promise<Product> => {
+    const response = await api.post<Product>('/products', data);
+    return response.data;
+  },
+
+  getProducts: async (): Promise<Product[]> => {
+    const response = await api.get<Product[]>('/products');
+    return response.data;
+  },
+
+  updateProduct: async (id: string, data: Partial<CreateProductDTO>): Promise<Product> => {
+    const response = await api.put<Product>(`/products/${id}`, data);
+    return response.data;
+  },
+
+  toggleProductStatus: async (id: string): Promise<Product> => {
+    const response = await api.patch<Product>(`/products/${id}/toggle-status`);
+    return response.data;
+  },
+
+  deleteProduct: async (id: string): Promise<void> => {
+    await api.delete(`/products/${id}`);
+  }
 };
 
 export default api; 
