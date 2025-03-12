@@ -5,8 +5,8 @@ import { ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { AppRoutes } from './routes';
-
-const queryClient = new QueryClient();
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { queryClient } from './lib/react-query';
 
 const theme = createTheme({
   palette: {
@@ -31,6 +31,7 @@ export const App: React.FC = () => {
           </BrowserRouter>
         </NotificationProvider>
       </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 };

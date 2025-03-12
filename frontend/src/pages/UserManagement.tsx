@@ -20,7 +20,12 @@ import {
   Tab,
   Box,
 } from '@mui/material';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  useQuery, 
+  useMutation, 
+  useQueryClient,
+  QueryFunction
+} from '@tanstack/react-query';
 import { userService } from '../services/api';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
@@ -52,8 +57,14 @@ const TabPanel = (props: TabPanelProps) => {
 const validationSchema = yup.object({
   username: yup.string().required('Username é obrigatório'),
   password: yup.string().required('Senha é obrigatória'),
-  role: yup.string().required('Papel é obrigatório'),
+  role: yup.string().oneOf(['admin', 'user'], 'Papel inválido').required('Papel é obrigatório'),
 });
+
+interface CreateUserFormValues {
+  username: string;
+  password: string;
+  role: 'admin' | 'user';
+}
 
 export const UserManagement: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -61,23 +72,17 @@ export const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
 
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<User[]>({
     queryKey: ['users'],
-    queryFn: userService.getUsers,
-    onError: () => {
-      showNotification('Erro ao carregar usuários', 'error');
-    },
+    queryFn: userService.getUsers as QueryFunction<User[]>,
   });
 
-  const { data: logs = [], isLoading: isLoadingLogs } = useQuery({
+  const { data: logs = [], isLoading: isLoadingLogs } = useQuery<UserLog[]>({
     queryKey: ['userLogs'],
-    queryFn: userService.getUserLogs,
-    onError: () => {
-      showNotification('Erro ao carregar logs', 'error');
-    },
+    queryFn: userService.getUserLogs as QueryFunction<UserLog[]>,
   });
 
-  const createUserMutation = useMutation({
+  const createUserMutation = useMutation<User, Error, CreateUserFormValues>({
     mutationFn: userService.createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -90,7 +95,7 @@ export const UserManagement: React.FC = () => {
     },
   });
 
-  const toggleUserStatusMutation = useMutation({
+  const toggleUserStatusMutation = useMutation<User, Error, string>({
     mutationFn: userService.toggleUserStatus,
     onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -104,7 +109,7 @@ export const UserManagement: React.FC = () => {
     },
   });
 
-  const formik = useFormik({
+  const formik = useFormik<CreateUserFormValues>({
     initialValues: {
       username: '',
       password: '',
@@ -162,7 +167,7 @@ export const UserManagement: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users?.map((user) => (
+                {users.map((user: User) => (
                   <TableRow key={user._id}>
                     <TableCell>{user.username}</TableCell>
                     <TableCell>{user.role}</TableCell>
@@ -203,7 +208,7 @@ export const UserManagement: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {logs?.map((log) => (
+                {logs.map((log: UserLog) => (
                   <TableRow key={log._id}>
                     <TableCell>{log.action}</TableCell>
                     <TableCell>{log.userId.username}</TableCell>
