@@ -14,7 +14,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     return <Navigate to="/login" replace />;
   }
 
-  return <Layout>{children}</Layout>;
+  return <>{children}</>;
 };
 
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -50,7 +50,7 @@ export const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      <Route element={<Layout />}>
         <Route index element={<ProductManagement />} />
         {user.role === 'admin' && (
           <>
