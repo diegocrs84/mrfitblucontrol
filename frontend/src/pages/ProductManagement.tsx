@@ -18,8 +18,15 @@ import {
   MenuItem,
   Box,
   IconButton,
+  Tooltip,
+  Grid,
+  InputAdornment,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  FileDownload as FileDownloadIcon
+} from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService } from '../services/api';
 import { useFormik } from 'formik';
@@ -38,6 +45,18 @@ const validationSchema = yup.object({
   quantity: yup.number().min(0, 'Quantidade deve ser maior que 0').required('Quantidade é obrigatória'),
   weight: yup.string().required('Peso é obrigatório'),
 });
+
+// Função para calcular a margem de lucro em percentual
+const calculateProfitMarginPercentage = (costPrice: number, sellingPrice: number): string => {
+  if (costPrice <= 0) return '0%';
+  const marginPercentage = ((sellingPrice - costPrice) / costPrice) * 100;
+  return `${marginPercentage.toFixed(2)}%`;
+};
+
+// Função para calcular o valor monetário da margem de lucro
+const calculateProfitMarginValue = (costPrice: number, sellingPrice: number): number => {
+  return sellingPrice - costPrice;
+};
 
 export const ProductManagement: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -152,6 +171,30 @@ export const ProductManagement: React.FC = () => {
     formik.resetForm();
   };
 
+  const handleExportToExcel = async () => {
+    try {
+      if (products.length === 0) {
+        showNotification('Não há produtos cadastrados para exportar', 'warning');
+        return;
+      }
+      
+      const blob = await productService.exportToExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'produtos.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showNotification('Exportação concluída com sucesso', 'success');
+    } catch (error) {
+      console.error('Erro ao exportar para Excel:', error);
+      showNotification('Erro ao exportar produtos para Excel', 'error');
+    }
+  };
+
   if (isLoading) {
     return <Typography>Carregando...</Typography>;
   }
@@ -160,63 +203,129 @@ export const ProductManagement: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4">Gerenciamento de Produtos</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setIsDialogOpen(true)}
-        >
-          Novo Produto
-        </Button>
+        <Box>
+          <Tooltip title="Exportar para Excel">
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleExportToExcel}
+              sx={{ mr: 2 }}
+            >
+              Exportar Excel
+            </Button>
+          </Tooltip>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsDialogOpen(true)}
+          >
+            Novo Produto
+          </Button>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Categoria</TableCell>
-              <TableCell>Peso</TableCell>
-              <TableCell>Quantidade</TableCell>
-              <TableCell>Preço de Custo</TableCell>
-              <TableCell>Preço de Venda</TableCell>
-              <TableCell>Preço iFood</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Ações</TableCell>
+              <TableCell width="15%">Nome</TableCell>
+              <TableCell width="10%">Categoria</TableCell>
+              <TableCell width="8%" align="center">Peso</TableCell>
+              <TableCell width="8%" align="center">Qtd</TableCell>
+              <TableCell width="10%" align="right">
+                <Tooltip title="Preço de Custo">
+                  <span>Custo (R$)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell width="10%" align="right">
+                <Tooltip title="Preço de Venda">
+                  <span>Venda (R$)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell width="10%" align="right">
+                <Tooltip title="Preço no iFood">
+                  <span>iFood (R$)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell width="8%" align="center">
+                <Tooltip title="Percentual de Margem de Lucro">
+                  <span>Margem %</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell width="10%" align="right">
+                <Tooltip title="Valor Monetário da Margem de Lucro">
+                  <span>Lucro (R$)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell width="6%" align="center">Status</TableCell>
+              <TableCell width="5%" align="center">Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {products.map((product) => (
-              <TableRow key={product._id}>
+              <TableRow key={product._id} hover>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>{product.category}</TableCell>
-                <TableCell>{product.weight}</TableCell>
-                <TableCell>{product.quantity}</TableCell>
-                <TableCell>{formatCurrency(product.costPrice)}</TableCell>
-                <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
-                <TableCell>{formatCurrency(product.ifoodPrice)}</TableCell>
-                <TableCell>{product.isActive ? 'Ativo' : 'Inativo'}</TableCell>
-                <TableCell>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleEdit(product)}
-                    size="small"
+                <TableCell align="center">{product.weight}</TableCell>
+                <TableCell align="center">{product.quantity}</TableCell>
+                <TableCell align="right">{formatCurrency(product.costPrice)}</TableCell>
+                <TableCell align="right">{formatCurrency(product.sellingPrice)}</TableCell>
+                <TableCell align="right">{formatCurrency(product.ifoodPrice)}</TableCell>
+                <TableCell align="center">
+                  {calculateProfitMarginPercentage(product.costPrice, product.sellingPrice)}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCurrency(calculateProfitMarginValue(product.costPrice, product.sellingPrice))}
+                </TableCell>
+                <TableCell align="center">
+                  <Box 
+                    component="span" 
+                    sx={{ 
+                      backgroundColor: product.isActive ? '#e6f4ea' : '#fdeded',
+                      color: product.isActive ? '#0d652d' : '#d32f2f',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold'
+                    }}
                   >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color={product.isActive ? 'error' : 'success'}
-                    onClick={() => toggleProductStatusMutation.mutate(product._id)}
-                    size="small"
-                  >
-                    {product.isActive ? 'Desativar' : 'Ativar'}
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => deleteProductMutation.mutate(product._id)}
-                    size="small"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                    {product.isActive ? 'ATIVO' : 'INATIVO'}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Tooltip title="Editar">
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleEdit(product)}
+                        size="small"
+                        sx={{ padding: '4px' }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={product.isActive ? "Desativar" : "Ativar"}>
+                      <IconButton
+                        color={product.isActive ? 'error' : 'success'}
+                        onClick={() => toggleProductStatusMutation.mutate(product._id)}
+                        size="small"
+                        sx={{ padding: '4px' }}
+                      >
+                        {product.isActive ? 'D' : 'A'}
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Excluir">
+                      <IconButton
+                        color="error"
+                        onClick={() => deleteProductMutation.mutate(product._id)}
+                        size="small"
+                        sx={{ padding: '4px' }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -235,110 +344,158 @@ export const ProductManagement: React.FC = () => {
         </DialogTitle>
         <form onSubmit={formik.handleSubmit}>
           <DialogContent>
-            <TextField
-              fullWidth
-              margin="normal"
-              id="name"
-              name="name"
-              label="Nome"
-              value={formik.values.name}
-              onChange={formik.handleChange}
-              error={formik.touched.name && Boolean(formik.errors.name)}
-              helperText={formik.touched.name && formik.errors.name}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="description"
-              name="description"
-              label="Descrição"
-              multiline
-              rows={3}
-              value={formik.values.description}
-              onChange={formik.handleChange}
-              error={formik.touched.description && Boolean(formik.errors.description)}
-              helperText={formik.touched.description && formik.errors.description}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="category"
-              name="category"
-              label="Categoria"
-              select
-              value={formik.values.category}
-              onChange={formik.handleChange}
-              error={formik.touched.category && Boolean(formik.errors.category)}
-              helperText={formik.touched.category && formik.errors.category}
-            >
-              <MenuItem value="Frango">Frango</MenuItem>
-              <MenuItem value="Carne">Carne</MenuItem>
-              <MenuItem value="Peixe">Peixe</MenuItem>
-              <MenuItem value="Vegetariano">Vegetariano</MenuItem>
-            </TextField>
-            <TextField
-              fullWidth
-              margin="normal"
-              id="weight"
-              name="weight"
-              label="Peso"
-              value={formik.values.weight}
-              onChange={formik.handleChange}
-              error={formik.touched.weight && Boolean(formik.errors.weight)}
-              helperText={formik.touched.weight && formik.errors.weight}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="quantity"
-              name="quantity"
-              label="Quantidade"
-              type="number"
-              value={formik.values.quantity}
-              onChange={formik.handleChange}
-              error={formik.touched.quantity && Boolean(formik.errors.quantity)}
-              helperText={formik.touched.quantity && formik.errors.quantity}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="costPrice"
-              name="costPrice"
-              label="Preço de Custo"
-              type="number"
-              value={formik.values.costPrice}
-              onChange={formik.handleChange}
-              error={formik.touched.costPrice && Boolean(formik.errors.costPrice)}
-              helperText={formik.touched.costPrice && formik.errors.costPrice}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="sellingPrice"
-              name="sellingPrice"
-              label="Preço de Venda"
-              type="number"
-              value={formik.values.sellingPrice}
-              onChange={formik.handleChange}
-              error={formik.touched.sellingPrice && Boolean(formik.errors.sellingPrice)}
-              helperText={formik.touched.sellingPrice && formik.errors.sellingPrice}
-            />
-            <TextField
-              fullWidth
-              margin="normal"
-              id="ifoodPrice"
-              name="ifoodPrice"
-              label="Preço iFood"
-              type="number"
-              value={formik.values.ifoodPrice}
-              onChange={formik.handleChange}
-              error={formik.touched.ifoodPrice && Boolean(formik.errors.ifoodPrice)}
-              helperText={formik.touched.ifoodPrice && formik.errors.ifoodPrice}
-            />
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="name"
+                  name="name"
+                  label="Nome"
+                  value={formik.values.name}
+                  onChange={formik.handleChange}
+                  error={formik.touched.name && Boolean(formik.errors.name)}
+                  helperText={formik.touched.name && formik.errors.name}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="description"
+                  name="description"
+                  label="Descrição"
+                  multiline
+                  rows={3}
+                  value={formik.values.description}
+                  onChange={formik.handleChange}
+                  error={formik.touched.description && Boolean(formik.errors.description)}
+                  helperText={formik.touched.description && formik.errors.description}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="category"
+                  name="category"
+                  label="Categoria"
+                  select
+                  value={formik.values.category}
+                  onChange={formik.handleChange}
+                  error={formik.touched.category && Boolean(formik.errors.category)}
+                  helperText={formik.touched.category && formik.errors.category}
+                >
+                  <MenuItem value="Frango">Frango</MenuItem>
+                  <MenuItem value="Carne">Carne</MenuItem>
+                  <MenuItem value="Peixe">Peixe</MenuItem>
+                  <MenuItem value="Vegetariano">Vegetariano</MenuItem>
+                </TextField>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="weight"
+                  name="weight"
+                  label="Peso"
+                  value={formik.values.weight}
+                  onChange={formik.handleChange}
+                  error={formik.touched.weight && Boolean(formik.errors.weight)}
+                  helperText={formik.touched.weight && formik.errors.weight}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="quantity"
+                  name="quantity"
+                  label="Quantidade"
+                  type="number"
+                  value={formik.values.quantity}
+                  onChange={formik.handleChange}
+                  error={formik.touched.quantity && Boolean(formik.errors.quantity)}
+                  helperText={formik.touched.quantity && formik.errors.quantity}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="costPrice"
+                  name="costPrice"
+                  label="Preço de Custo"
+                  type="number"
+                  value={formik.values.costPrice}
+                  onChange={formik.handleChange}
+                  error={formik.touched.costPrice && Boolean(formik.errors.costPrice)}
+                  helperText={formik.touched.costPrice && formik.errors.costPrice}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                  }}
+                  inputProps={{
+                    step: "0.01"
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="sellingPrice"
+                  name="sellingPrice"
+                  label="Preço de Venda"
+                  type="number"
+                  value={formik.values.sellingPrice}
+                  onChange={formik.handleChange}
+                  error={formik.touched.sellingPrice && Boolean(formik.errors.sellingPrice)}
+                  helperText={formik.touched.sellingPrice && formik.errors.sellingPrice}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                  }}
+                  inputProps={{
+                    step: "0.01"
+                  }}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  id="ifoodPrice"
+                  name="ifoodPrice"
+                  label="Preço iFood"
+                  type="number"
+                  value={formik.values.ifoodPrice}
+                  onChange={formik.handleChange}
+                  error={formik.touched.ifoodPrice && Boolean(formik.errors.ifoodPrice)}
+                  helperText={formik.touched.ifoodPrice && formik.errors.ifoodPrice}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                  }}
+                  inputProps={{
+                    step: "0.01"
+                  }}
+                />
+              </Grid>
+            </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancelar</Button>
-            <Button type="submit" variant="contained">
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={formik.isSubmitting}
+            >
               {editingProduct ? 'Atualizar' : 'Criar'}
             </Button>
           </DialogActions>

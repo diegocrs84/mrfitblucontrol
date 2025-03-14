@@ -76,6 +76,13 @@ export const productService = {
 
   deleteProduct: async (id: string): Promise<void> => {
     await api.delete(`/products/${id}`);
+  },
+
+  exportToExcel: async (): Promise<Blob> => {
+    const response = await api.get('/products/export/excel', {
+      responseType: 'blob'
+    });
+    return response.data;
   }
 };
 

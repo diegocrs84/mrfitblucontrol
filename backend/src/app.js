@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRouter = require('./routes/auth');
 const userRouter = require('./routes/users');
+const productRouter = require('./routes/products');
 const User = require('./models/User');
 
 const app = express();
@@ -44,6 +45,7 @@ createInitialAdmin();
 // Rotas
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/products', productRouter);
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
