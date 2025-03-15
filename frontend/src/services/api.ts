@@ -83,6 +83,23 @@ export const productService = {
       responseType: 'blob'
     });
     return response.data;
+  },
+  
+  importFromExcel: async (file: File): Promise<{ message: string; total: number; success: number; errors: string[] }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post<{ message: string; total: number; success: number; errors: string[] }>(
+      '/products/import/excel',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    
+    return response.data;
   }
 };
 

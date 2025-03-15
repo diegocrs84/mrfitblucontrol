@@ -9,6 +9,8 @@ import {
   TextField,
   Button,
   Paper,
+  Avatar,
+  useTheme,
 } from '@mui/material';
 import { authService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +25,7 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showNotification } = useNotification();
+  const theme = useTheme();
 
   const formik = useFormik({
     initialValues: {
@@ -49,15 +52,18 @@ export const Login: React.FC = () => {
   });
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
+    <Box 
+      sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.palette.background.default,
+        backgroundImage: 'linear-gradient(rgba(13, 71, 161, 0.05) 1px, transparent 1px), linear-gradient(to right, rgba(13, 71, 161, 0.05) 1px, transparent 1px)',
+        backgroundSize: '20px 20px'
+      }}
+    >
+      <Container component="main" maxWidth="xs">
         <Paper
           elevation={3}
           sx={{
@@ -66,15 +72,54 @@ export const Login: React.FC = () => {
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '4px',
+              background: 'linear-gradient(to right, #0D47A1, #1565C0, #43A047)',
+            }
           }}
         >
-          <Typography component="h1" variant="h5">
+          <Avatar 
+            src="/Logo.jpeg" 
+            alt="Logo Mr Fit Blu"
+            sx={{ 
+              width: 80, 
+              height: 80, 
+              mb: 2,
+              border: '1px solid #e0e0e0',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+            }}
+          />
+          <Typography 
+            component="h1" 
+            variant="h5" 
+            sx={{ 
+              mb: 1,
+              color: theme.palette.primary.main,
+              fontWeight: 600
+            }}
+          >
             Mr Fit Blu Control
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ mb: 3 }}
+          >
+            Sistema de Gerenciamento de Produtos
           </Typography>
           <Box
             component="form"
             onSubmit={formik.handleSubmit}
-            sx={{ mt: 1, width: '100%' }}
+            sx={{ width: '100%' }}
           >
             <TextField
               margin="normal"
@@ -86,6 +131,7 @@ export const Login: React.FC = () => {
               onChange={formik.handleChange}
               error={formik.touched.username && Boolean(formik.errors.username)}
               helperText={formik.touched.username && formik.errors.username}
+              sx={{ mb: 2 }}
             />
             <TextField
               margin="normal"
@@ -98,18 +144,34 @@ export const Login: React.FC = () => {
               onChange={formik.handleChange}
               error={formik.touched.password && Boolean(formik.errors.password)}
               helperText={formik.touched.password && formik.errors.password}
+              sx={{ mb: 3 }}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              size="large"
+              sx={{ 
+                mt: 1, 
+                mb: 2,
+                py: 1.2,
+                fontSize: '1rem',
+                fontWeight: 500
+              }}
             >
               Entrar
             </Button>
           </Box>
         </Paper>
-      </Box>
-    </Container>
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          align="center" 
+          sx={{ mt: 3 }}
+        >
+          © {new Date().getFullYear()} Mr Fit Blu Control. Todos os direitos reservados.
+        </Typography>
+      </Container>
+    </Box>
   );
 }; 

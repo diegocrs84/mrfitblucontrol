@@ -3,6 +3,28 @@ const router = express.Router();
 const Product = require('../models/Product');
 const { auth } = require('../middleware/auth');
 const ExcelJS = require('exceljs');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+// Configuração do Multer para upload de arquivos
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limite
+  },
+  fileFilter: (req, file, cb) => {
+    // Aceitar apenas arquivos Excel
+    if (
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'application/vnd.ms-excel'
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Formato de arquivo não suportado. Envie um arquivo Excel.'));
+    }
+  }
+});
 
 // Rota para obter todos os produtos
 router.get('/', auth, async (req, res) => {
@@ -12,6 +34,104 @@ router.get('/', auth, async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar produtos:', error);
     res.status(500).json({ error: 'Erro ao buscar produtos' });
+  }
+});
+
+// Rota para importar produtos de Excel
+router.post('/import/excel', auth, upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Nenhum arquivo foi enviado' });
+  }
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    
+    const worksheet = workbook.getWorksheet(1); // Primeira planilha
+    
+    if (!worksheet) {
+      return res.status(400).json({ error: 'A planilha não contém dados' });
+    }
+    
+    const productsToCreate = [];
+    const errors = [];
+    let rowCount = 0;
+    let successCount = 0;
+    
+    // Pular a primeira linha (cabeçalho)
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return; // Pular cabeçalho
+      
+      rowCount++;
+      
+      try {
+        // Suponha que as colunas sejam:
+        // A: Nome, B: Descrição, C: Categoria, D: Peso, E: Quantidade
+        // F: Preço de Custo, G: Preço de Venda, H: Preço iFood
+        const name = row.getCell(1).value;
+        const description = row.getCell(2).value || '';
+        const category = row.getCell(3).value;
+        const weight = row.getCell(4).value;
+        const quantity = parseInt(row.getCell(5).value) || 0;
+        const costPrice = parseFloat(row.getCell(6).value) || 0;
+        const sellingPrice = parseFloat(row.getCell(7).value) || 0;
+        const ifoodPrice = parseFloat(row.getCell(8).value) || 0;
+        
+        // Validações básicas
+        if (!name || !category || costPrice <= 0 || sellingPrice <= 0) {
+          errors.push(`Linha ${rowNumber}: Dados inválidos (nome, categoria, e preços são obrigatórios)`);
+          return;
+        }
+        
+        // Validação de categoria
+        const validCategories = ['Frango', 'Carne', 'Peixe', 'Vegetariano'];
+        if (!validCategories.includes(category)) {
+          errors.push(`Linha ${rowNumber}: Categoria '${category}' inválida. Use: ${validCategories.join(', ')}`);
+          return;
+        }
+        
+        // Adicionar produto à lista para criar
+        productsToCreate.push({
+          name,
+          description,
+          category,
+          weight,
+          quantity,
+          costPrice,
+          sellingPrice,
+          ifoodPrice,
+          isActive: true
+        });
+        
+        successCount++;
+      } catch (error) {
+        errors.push(`Linha ${rowNumber}: ${error.message}`);
+      }
+    });
+    
+    // Inserir produtos no banco de dados
+    if (productsToCreate.length > 0) {
+      await Product.insertMany(productsToCreate);
+    }
+    
+    // Limpar o arquivo temporário
+    fs.unlinkSync(req.file.path);
+    
+    res.json({
+      message: `Importação concluída. ${successCount} produtos importados.`,
+      total: rowCount,
+      success: successCount,
+      errors: errors
+    });
+  } catch (error) {
+    console.error('Erro ao importar produtos:', error);
+    
+    // Limpar o arquivo temporário em caso de erro
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({ error: 'Erro ao importar produtos do Excel' });
   }
 });
 
@@ -108,7 +228,7 @@ router.get('/:id', auth, async (req, res) => {
 // Rota para criar um novo produto
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, description, category, costPrice, sellingPrice, ifoodPrice, quantity, weight } = req.body;
+    const { name, description, category, costPrice, sellingPrice, ifoodPrice, quantity, weight, expirationDate } = req.body;
 
     const newProduct = new Product({
       name,
@@ -118,7 +238,8 @@ router.post('/', auth, async (req, res) => {
       sellingPrice,
       ifoodPrice,
       quantity,
-      weight
+      weight,
+      expirationDate
     });
 
     await newProduct.save();
@@ -132,7 +253,7 @@ router.post('/', auth, async (req, res) => {
 // Rota para atualizar um produto
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { name, description, category, costPrice, sellingPrice, ifoodPrice, quantity, weight } = req.body;
+    const { name, description, category, costPrice, sellingPrice, ifoodPrice, quantity, weight, expirationDate } = req.body;
     
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
@@ -145,6 +266,7 @@ router.put('/:id', auth, async (req, res) => {
         ifoodPrice,
         quantity,
         weight,
+        expirationDate,
         updatedAt: Date.now()
       },
       { new: true }

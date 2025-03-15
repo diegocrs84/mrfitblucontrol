@@ -4,6 +4,7 @@ import { Login } from '../pages/Login';
 import { ChangePassword } from '../pages/ChangePassword';
 import { UserManagement } from '../pages/UserManagement';
 import { ProductManagement } from '../pages/ProductManagement';
+import { StockManagement } from '../pages/StockManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 
@@ -58,6 +59,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="/products" element={<ProductManagement />} />
           </>
         )}
+        <Route path="/estoque" element={<StockManagement />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

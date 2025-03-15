@@ -45,6 +45,7 @@ export interface Product {
   ifoodPrice: number;
   quantity: number;
   weight: string;
+  expirationDate: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -59,4 +60,5 @@ export interface CreateProductDTO {
   ifoodPrice: number;
   quantity: number;
   weight: string;
+  expirationDate: string;
 } 

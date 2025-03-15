@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link as RouterLink } from 'react-router-dom';
 import {
   AppBar,
@@ -13,51 +13,117 @@ import {
   Toolbar,
   Typography,
   Button,
+  Avatar,
+  useTheme,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   People as PeopleIcon,
   Inventory as InventoryIcon,
   ExitToApp as ExitToAppIcon,
+  ChevronLeft as ChevronLeftIcon,
+  Storage as StorageIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
+// Largura reduzida do drawer para usar menos espaço
 const drawerWidth = 240;
 
 export const Layout: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  // Inicializa com o drawer fechado em todos os tamanhos de tela
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, logout } = useAuth();
+  const theme = useTheme();
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+    setDrawerOpen(!drawerOpen);
   };
 
   const drawer = (
     <div>
-      <Toolbar />
-      <List>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          p: 2, 
+          background: 'linear-gradient(to right, #0D47A1, #1565C0)', 
+          color: 'white' 
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar
+            src="/Logo.jpeg"
+            alt="Logo Mr Fit Blu"
+            sx={{
+              width: 40,
+              height: 40,
+              marginRight: 2,
+              border: '1px solid white',
+            }}
+          />
+          <Typography variant="h6" noWrap>
+            Mr Fit Blu
+          </Typography>
+        </Box>
+        <IconButton onClick={handleDrawerToggle} sx={{ color: 'white' }}>
+          <ChevronLeftIcon />
+        </IconButton>
+      </Box>
+      <List sx={{ mt: 2 }}>
         <ListItem
           button
           component={RouterLink}
           to="/products"
-          onClick={() => setMobileOpen(false)}
+          onClick={() => setDrawerOpen(false)}
+          sx={{ 
+            mb: 1, 
+            '&:hover': { 
+              backgroundColor: theme.palette.primary.light + '20'
+            }
+          }}
         >
           <ListItemIcon>
-            <InventoryIcon />
+            <InventoryIcon color="primary" />
           </ListItemIcon>
-          <ListItemText primary="Produtos" />
+          <ListItemText primary="Produtos" primaryTypographyProps={{ color: 'primary' }} />
         </ListItem>
+        
+        <ListItem
+          button
+          component={RouterLink}
+          to="/estoque"
+          onClick={() => setDrawerOpen(false)}
+          sx={{ 
+            mb: 1, 
+            '&:hover': { 
+              backgroundColor: theme.palette.primary.light + '20'
+            }
+          }}
+        >
+          <ListItemIcon>
+            <StorageIcon color="primary" />
+          </ListItemIcon>
+          <ListItemText primary="Estoque" primaryTypographyProps={{ color: 'primary' }} />
+        </ListItem>
+        
         {user?.role === 'admin' && (
           <ListItem
             button
             component={RouterLink}
             to="/users"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => setDrawerOpen(false)}
+            sx={{ 
+              '&:hover': { 
+                backgroundColor: theme.palette.primary.light + '20'
+              }
+            }}
           >
             <ListItemIcon>
-              <PeopleIcon />
+              <PeopleIcon color="primary" />
             </ListItemIcon>
-            <ListItemText primary="Usuários" />
+            <ListItemText primary="Usuários" primaryTypographyProps={{ color: 'primary' }} />
           </ListItem>
         )}
       </List>
@@ -70,69 +136,81 @@ export const Layout: React.FC = () => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: '100%',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+          <Tooltip title="Abrir Menu">
+            <IconButton
+              color="inherit"
+              aria-label="abrir menu"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <Avatar 
+              src="/Logo.jpeg" 
+              alt="Logo Mr Fit Blu"
+              sx={{ 
+                width: 40, 
+                height: 40, 
+                marginRight: 2,
+                border: '1px solid white'
+              }}
+            />
+            <Typography variant="h6" noWrap component="div">
+              Mr Fit Blu Control
+            </Typography>
+          </Box>
+          <Button 
+            color="inherit" 
+            onClick={logout} 
+            startIcon={<ExitToAppIcon />}
+            sx={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)'
+              },
+              px: 2,
+              borderRadius: 2
+            }}
           >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Mr Fit Blu Control
-          </Typography>
-          <Button color="inherit" onClick={logout} startIcon={<ExitToAppIcon />}>
             Sair
           </Button>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      
+      {/* Drawer de navegação */}
+      <Drawer
+        variant="temporary"
+        open={drawerOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+          },
+        }}
       >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+        {drawer}
+      </Drawer>
+      
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: '100%',
+          backgroundColor: theme.palette.background.default,
+          minHeight: '100vh'
         }}
       >
         <Toolbar />
